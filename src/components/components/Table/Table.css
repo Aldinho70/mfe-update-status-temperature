@@ -1,0 +1,30 @@
+.table-wrapper{
+
+    max-height: calc(100vh - 140px);
+
+    overflow-y: auto;
+
+    border-radius: 12px;
+}
+
+
+/* Header sticky */
+.table thead{
+
+    position: sticky;
+
+    top: 0;
+
+    z-index: 10;
+}
+
+
+/* Mantener color arriba */
+.table thead th{
+
+    background: #212529 !important;
+
+    color: white;
+
+    border-color: #32383e;
+}

@@ -1,0 +1,32 @@
+.drop-zone{
+    width: 33%;
+    min-height: 400px;
+    vertical-align: top;
+    padding: 10px;
+    background: #f5f5f5;
+}
+
+.unit-card{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 10px;
+    margin-bottom: 10px;
+
+    background: rgb(137, 135, 135);
+    border-radius: 10px;
+
+    cursor: grab;
+
+    transition: .2s;
+}
+
+.unit-card:hover{
+    transform: scale(1.05);
+}
+
+.icon{
+    width: 30px;
+    height: 30px;
+}

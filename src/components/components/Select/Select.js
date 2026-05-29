@@ -1,0 +1,17 @@
+export const Select = (data) => {
+
+    return `
+        <select class="form-select" id="root-select">
+            <option selected>Selecciona una caja</option>
+            ${ data?.options
+                ? data.options.map( caja => `<option value="${caja.unit}">${caja.unit}</option>`)
+                : ``
+            }
+        </select>`
+}
+
+export const initSelect2 = () => {
+    $('#root-select').select2({
+        dropdownParent: $('#root-modal')
+    });
+}

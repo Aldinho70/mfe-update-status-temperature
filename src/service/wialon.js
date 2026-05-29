@@ -95,6 +95,7 @@ const WialonService = (() => {
         wialon.item.Item.dataFlag.customFields |
         wialon.item.Unit.dataFlag.lastMessage;
 
+      session.loadLibrary("itemIcon");
       session.loadLibrary("unitSensors");
       session.loadLibrary("itemCustomFields");
 
@@ -128,6 +129,7 @@ const WialonService = (() => {
                   id: u.getId(),
                   name: u.getName(),
                   Unidad: u.getName(),
+                  icon: u.getIconUrl(32),
                   Latitud: p?.y,
                   Longitud: p?.x,
                   speed: p?.s,
@@ -156,12 +158,99 @@ const WialonService = (() => {
     });
   }
 
-  async function getCustomFields ( id_unit ) {
-    const unit = session.getItem( id_unit );
+  async function getCustomFields(id_unit) {
+    const unit = session.getItem(id_unit);
     const custom_fields = unit.getCustomFields();
 
-    console.log( custom_fields );
-    
+    console.log(custom_fields);
+
+
+  }
+
+  // async function updateCustomField({ id_unit, field_id, field_name, field_new_value }) {
+  //   try {
+  //     const unit = session.getItem(id_unit);
+  //     await unit.updateCustomField({ id: field_id, n: field_name, v: field_new_value },
+  //       (code) => {
+
+  //         console.log(code);
+
+  //         return code;
+
+  //       }
+  //     )
+
+  //   } catch (error) {
+  //     console.log(error);
+  //   }
+  // }
+
+  // async function updateCustomField({
+  //   id_unit,
+  //   field_id,
+  //   field_name,
+  //   field_new_value
+  // }) {
+
+  //   return new Promise((resolve, reject) => {
+
+  //     const unit = session.getItem(id_unit);
+
+  //     if (!unit) {
+  //       return reject('Unidad no encontrada');
+  //     }
+
+  //     unit.updateCustomField(
+  //       field_id,
+  //       field_name,
+  //       field_new_value,
+  //       (code) => {
+
+  //         if (code) {
+  //           return reject(
+  //             wialon.core.Errors.getErrorText(code)
+  //           );
+  //         }
+
+  //         resolve(true);
+  //       }
+  //     );
+
+  //   });
+
+  // }
+
+  async function updateCustomField({ id_unit, field_id, field_name, field_new_value }) {
+
+    return new Promise((resolve, reject) => {
+
+      const unit = session.getItem(id_unit);
+      const unit_name = unit.getName();
+
+      if (!unit) {
+        return reject('Unidad no encontrada');
+      }
+
+      unit.updateCustomField({
+          id: field_id,
+          n: field_name,
+          v: field_new_value
+        },(code) => {
+
+          if (code !== 0) {
+            return reject( wialon.core.Errors.getErrorText(code) );
+          }
+
+          resolve({
+            unit_name,
+            success: true,
+            code
+          });
+
+        }
+      );
+
+    });
 
   }
 
@@ -169,7 +258,8 @@ const WialonService = (() => {
     login,
     logout,
     loadUnits,
-    loadGroupsWithUnits,
     getCustomFields,
+    updateCustomField,
+    loadGroupsWithUnits,
   };
 })();
