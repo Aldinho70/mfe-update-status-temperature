@@ -1,6 +1,6 @@
 import { Table } from "../components/Table/Table.js"
 import { Modal } from "../components/Modal/Modal.js";
-import { TableCajas } from "../TableCajas/TableCajas.js"; 
+import { TableCajas } from "../TableCajas/TableCajas.js";
 
 const movedUnits = [];
 
@@ -71,16 +71,23 @@ const createColumn = (units = [], status = '') => {
 
 const createUnitCard = (unit, status) => {
 
-    const field_id = unit["4 ESTADO"].id;
     const caja = unit["05 CAJA1"];
+    const field_id = unit["4 ESTADO"].id;
+
+    const safeId = unit.unit
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-zA-Z0-9_-]/g, '');
 
     return `
         <div 
             class="unit-card d-flex justify-content-between align-items-center p-2 mb-2 border rounded bg-white shadow-sm"
             draggable="true"
+            id="card-root-${safeId}"
             data-unit="${unit.unit}"
             data-unit_id="${unit.id}"
             data-field_id="${field_id}"
+            data-field-id-caja=${caja.id}
             data-status="${status}"
         >
 
@@ -115,11 +122,11 @@ const createUnitCard = (unit, status) => {
                     Caja asignada
                 </small>
 
-                <button class="btn btn-sm btn-warning caja-btn" data-unit="${unit.unit}" onClick="updateCaja()">
+                <button class="btn btn-sm btn-warning caja-btn" data-unit="${unit.unit}" onClick="updateCaja('${safeId}')">
 
                     <i class="bi bi-truck me-1"></i>
 
-                    ${caja?.v || 'Asignar caja'}
+                    <span id="root-button-caja-asignada-${unit.id}" >${caja?.v || 'Asignar caja'}</span>
 
                 </button>
 
@@ -249,6 +256,7 @@ const initDragAndDrop = () => {
             }
 
             alert(message);
+            window.location.reload();
 
         } catch (error) {
 
@@ -260,8 +268,15 @@ const initDragAndDrop = () => {
 
 };
 
-const updateCaja = () => {
-    // Modal();
-    TableCajas();
+const updateCaja = (unit_selected) => {
+    const card = $(`#card-root-${unit_selected}`);
+    const payload = {
+        unit: card.data('unit'),
+        unit_id: card.data('unit_id'),
+        field_id_caja: card.data('field-id-caja'),
+        field_name_caja: '05 CAJA1',
+    }
+
+    TableCajas( payload );
 }
 window.updateCaja = updateCaja;

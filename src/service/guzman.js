@@ -1,4 +1,5 @@
 import { TableUnits } from "../components/TableUnits/TableUnits.js";
+import { hideLoader } from "../components/components/Loader/Loader.js";
 
 export const mapUnits = async (groups) => {
 
@@ -43,5 +44,7 @@ export const mapUnits = async (groups) => {
 
     // console.log(array_units);
 
+    hideLoader();
     TableUnits(array_units);
+    
 }

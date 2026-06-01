@@ -13,7 +13,10 @@ export const Modal = ( data ) => {
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" onClick="close_modal()">Cerrar</button>
-                        <button type="button" class="btn btn-primary">Guardar</button>
+                        ${ (data?.function_button)
+                            ? `<button type="button" class="btn btn-primary" onClick="${data?.function_button || alert('Sin funcion')}" >Guardar</button>`
+                            : ``
+                        }
                     </div>
                 </div>
             </div>

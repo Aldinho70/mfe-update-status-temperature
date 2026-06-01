@@ -1,10 +1,12 @@
 import { mapUnits } from "./src/service/guzman.js";
 import { TOKEN_WIALON } from "./src/config/wialon.config.js";
 import { GROUPS_FILTER } from "./src/config/guzman.config.js";
+import { showLoader, hideLoader } from "./src/components/components/Loader/Loader.js";
 
 $(async () => {
     const initWialon = async () => {
         try {
+            showLoader();
             await WialonService.login(TOKEN_WIALON);
 
             // const units = await WialonService.loadUnits();

@@ -167,59 +167,6 @@ const WialonService = (() => {
 
   }
 
-  // async function updateCustomField({ id_unit, field_id, field_name, field_new_value }) {
-  //   try {
-  //     const unit = session.getItem(id_unit);
-  //     await unit.updateCustomField({ id: field_id, n: field_name, v: field_new_value },
-  //       (code) => {
-
-  //         console.log(code);
-
-  //         return code;
-
-  //       }
-  //     )
-
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // }
-
-  // async function updateCustomField({
-  //   id_unit,
-  //   field_id,
-  //   field_name,
-  //   field_new_value
-  // }) {
-
-  //   return new Promise((resolve, reject) => {
-
-  //     const unit = session.getItem(id_unit);
-
-  //     if (!unit) {
-  //       return reject('Unidad no encontrada');
-  //     }
-
-  //     unit.updateCustomField(
-  //       field_id,
-  //       field_name,
-  //       field_new_value,
-  //       (code) => {
-
-  //         if (code) {
-  //           return reject(
-  //             wialon.core.Errors.getErrorText(code)
-  //           );
-  //         }
-
-  //         resolve(true);
-  //       }
-  //     );
-
-  //   });
-
-  // }
-
   async function updateCustomField({ id_unit, field_id, field_name, field_new_value }) {
 
     return new Promise((resolve, reject) => {
