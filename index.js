@@ -9,12 +9,10 @@ $(async () => {
             showLoader();
             await WialonService.login(TOKEN_WIALON);
 
-            // const units = await WialonService.loadUnits();
-            // console.log(units);
-
             const groups_with_units = await WialonService.loadGroupsWithUnits(GROUPS_FILTER);
-            // console.log(groups_with_units);
             mapUnits( groups_with_units );
+
+            
             
         } catch (err) {
             console.error(err);

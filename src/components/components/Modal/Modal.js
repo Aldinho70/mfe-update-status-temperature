@@ -1,8 +1,8 @@
 export const Modal = ( data ) => {
     
     const html_modal = `
-        <div class="modal" tabindex="-1" id="root-modal">
-            <div class="modal-dialog">
+        <div class="modal bg-dark" tabindex="-1" id="root-modal">
+            <div class="modal-dialog ${ data?.modal_size || 'modal-lg'} ">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">${ data?.title || 'Sin titulo asignado' }</h5>

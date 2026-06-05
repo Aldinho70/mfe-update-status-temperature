@@ -11,6 +11,9 @@ export const TableCajas = async (_unit_selected) => {
     const cajas = [...groups_cajas[0].units, ...groups_cajas[1].units]
 
     cajas.forEach(caja => {
+        // if( caja.name == 'C-052 - I' )
+        // console.log( caja );
+        
         array_data.push({ unit: caja.name })
     })
 

@@ -1,10 +1,16 @@
 import { Table } from "../components/Table/Table.js"
 import { Modal } from "../components/Modal/Modal.js";
 import { TableCajas } from "../TableCajas/TableCajas.js";
+import { findBoxTruck } from "../../helpers/wialon.helpers.js";
+import { WialonReportService } from "../../service/remoteWialonApi.js";
+import { parseWialonTimestamp } from "../../utils/parsed_date_time.js";
+import { init_chart_temperature } from "../Chart_Temperature/Chart_Temperature.js";
 
 const movedUnits = [];
+let wialon_report_service;
+let data_reports_temperatura;
 
-export const TableUnits = (data_units = []) => {
+export const TableUnits = async (data_units = []) => {
 
     const headers = [
         'Frio',
@@ -32,13 +38,9 @@ export const TableUnits = (data_units = []) => {
     // Crear body
     const body = `
         <tr>
-
             ${createColumn(grouped.REFRI, 'REFRI')}
-
             ${createColumn(grouped.SECO, 'SECO')}
-
             ${createColumn(grouped[0], '0')}
-
         </tr>
     `;
 
@@ -53,6 +55,8 @@ export const TableUnits = (data_units = []) => {
     // Inicializar drag and drop
     initDragAndDrop();
 
+    // data_reports_temperatura = await WialonService.getReportAccount('DEV-GUZMAN', 'TEMPERATURAS DEV');
+    // wialon_report_service = new WialonReportService(await WialonService.getSid());
 };
 
 const createColumn = (units = [], status = '') => {
@@ -75,9 +79,9 @@ const createUnitCard = (unit, status) => {
     const field_id = unit["4 ESTADO"].id;
 
     const safeId = unit.unit
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-zA-Z0-9_-]/g, '');
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-zA-Z0-9_-]/g, '');
 
     return `
         <div 
@@ -115,26 +119,150 @@ const createUnitCard = (unit, status) => {
 
             </div>
 
-            <!-- RIGHT -->
-            <div class="d-flex flex-column align-items-end">
+            <div class="d-flex justify-content-between align-items-end">
+                <div>
+                    <button class="btn btn-sm btn-info caja-btn" data-unit="${unit.unit}" onClick="showChartTemperature('${caja?.v}')">
+                        <span id="root-button-show-temperature-${unit.id}">
+                            <i class="bi bi-thermometer-snow"></i>
+                            Grafica temperaturas
+                        </span>
+                    </button>
+                </div>
+                <div class="d-flex flex-column align-items-end">
+                    <small class="text-muted mb-1">
+                        Caja asignada
+                    </small>
 
-                <small class="text-muted mb-1">
-                    Caja asignada
-                </small>
+                    <button class="btn btn-sm btn-warning caja-btn" data-unit="${unit.unit}" onClick="updateCaja('${safeId}')">
+                        <i class="bi bi-truck me-1"></i>
+                        <span id="root-button-caja-asignada-${unit.id}">
+                            ${caja?.v || 'Asignar caja'}
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+};
 
-                <button class="btn btn-sm btn-warning caja-btn" data-unit="${unit.unit}" onClick="updateCaja('${safeId}')">
+const getTemperatureStatsHtml = (stats) => {
 
-                    <i class="bi bi-truck me-1"></i>
+    if (!stats) {
+        return `
+            <div class="alert alert-warning">
+                No hay datos de temperatura disponibles.
+            </div>
+        `;
+    }
 
-                    <span id="root-button-caja-asignada-${unit.id}" >${caja?.v || 'Asignar caja'}</span>
+    return `
+        <div class="row g-3">
 
-                </button>
+            <div class="col-md-3">
+                <div class="card border-success text-bg-success h-100">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-2">Temperatura Actual</h6>
+                        <h3>${stats.lastTemperature} °C</h3>
+                    </div>
+                </div>
+            </div>
 
+            <div class="col-md-3">
+                <div class="card border-danger text-bg-danger h-100">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-2">Temperatura Máxima</h6>
+                        <h3>${stats.maxTemperature} °C</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card border-primary text-bg-primary h-100">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-2">Temperatura Mínima</h6>
+                        <h3>${stats.minTemperature} °C</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card border-info text-bg-info h-100">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-2">Promedio</h6>
+                        <h3>${stats.averageTemperature} °C</h3>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row g-3 mt-1">
+
+            <div class="col-md-4">
+                <div class="card text-bg-secondary h-100">
+                    <div class="card-header">
+                        Distribución
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2">
+                            <strong>Lecturas:</strong>
+                            ${stats.count}
+                        </p>
+
+                        <p class="mb-2">
+                            <strong>Positivas:</strong>
+                            ${stats.positiveReadings}
+                        </p>
+
+                        <p class="mb-0">
+                            <strong>Negativas:</strong>
+                            ${stats.negativeReadings}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card text-bg-secondary h-100">
+                    <div class="card-header">
+                        Variabilidad
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2">
+                            <strong>Rango:</strong>
+                            ${stats.temperatureRange} °C
+                        </p>
+
+                        <p class="mb-0">
+                            <strong>Mediana:</strong>
+                            ${stats.medianTemperature} °C
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card text-bg-secondary h-100">
+                    <div class="card-header">
+                        Tendencia
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2">
+                            <strong>Primera lectura:</strong>
+                            ${stats.firstTemperature} °C
+                        </p>
+
+                        <p class="mb-0">
+                            <strong>Última lectura:</strong>
+                            ${stats.lastTemperature} °C
+                        </p>
+                    </div>
+                </div>
             </div>
 
         </div>
     `;
-};
+}
 
 const initDragAndDrop = () => {
 
@@ -277,6 +405,126 @@ const updateCaja = (unit_selected) => {
         field_name_caja: '05 CAJA1',
     }
 
-    TableCajas( payload );
+    TableCajas(payload);
 }
 window.updateCaja = updateCaja;
+
+const showChartTemperature = async (caja) => {
+    try {
+
+        const find_caja = await findBoxTruck(caja);
+
+        const unit_selected = find_caja.id;
+
+        const session = await WialonService.getSession();
+
+        const unit = await session.getItem(unit_selected);
+
+        const sen = await WialonService.getSensor(unit_selected, ['TEMPERATURA', 'Temperatura']);
+
+        const last_messages = await WialonService.getLastMessages(unit_selected);
+
+        const array_last_messages = last_messages.messages;
+
+        const unit_name = unit.getName();
+
+        let array_temp = [], array_days = [], array_timestamp = [];
+
+        array_last_messages.forEach((_last_message) => {
+            if (_last_message.pos) {
+                const date_time = parseWialonTimestamp(_last_message.t);
+
+                let result = unit.calculateSensorValue(sen, _last_message)
+
+                if (result != -348201.3876) {
+                    array_days.push(date_time)
+                    array_temp.push(result)
+                }
+            }
+
+        });
+
+        const stats_temp = getTemperatureStats(array_temp);
+
+        Modal({
+            title: 'Grafica de temperaturas',
+            body: `<div id="root-chart-temperature" ></div>
+                    ${getTemperatureStatsHtml(stats_temp)}`,
+            modal_size: 'modal-fullscreen',
+        });
+
+        init_chart_temperature({ caja: unit_name, array_temp, array_days });
+
+    } catch (error) {
+        Modal({
+            title: 'Error al generar la grafica',
+            body: `<div class="alert alert-warning text-center my-3">
+                        <h6 class="mb-2">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            No fue posible generar la gráfica de temperatura
+                        </h6>
+
+                        <small>
+                            Si el problema persiste, por favor repórtelo al área de soporte técnico.
+                        </small>
+                    </div>`,
+        });
+    }
+}
+window.showChartTemperature = showChartTemperature;
+
+const getTemperatureStats = (temperatures) => {
+
+    const validTemps = temperatures
+        .filter(temp =>
+            typeof temp === 'number' &&
+            !isNaN(temp)
+        );
+
+    if (!validTemps.length) {
+        return null;
+    }
+
+    const min = Math.min(...validTemps);
+    const max = Math.max(...validTemps);
+
+    const avg =
+        validTemps.reduce((acc, temp) => acc + temp, 0) /
+        validTemps.length;
+
+    const range = max - min;
+
+    const overZero = validTemps.filter(t => t > 0).length;
+    const belowZero = validTemps.filter(t => t < 0).length;
+
+    const sorted = [...validTemps].sort((a, b) => a - b);
+
+    const median =
+        sorted.length % 2 === 0
+            ? (
+                sorted[sorted.length / 2 - 1] +
+                sorted[sorted.length / 2]
+            ) / 2
+            : sorted[Math.floor(sorted.length / 2)];
+
+    return {
+        count: validTemps.length,
+
+        minTemperature: min,
+        maxTemperature: max,
+
+        averageTemperature: Number(avg.toFixed(2)),
+        medianTemperature: Number(median.toFixed(2)),
+
+        temperatureRange: Number(range.toFixed(2)),
+
+        positiveReadings: overZero,
+        negativeReadings: belowZero,
+
+        firstTemperature: validTemps[0],
+        lastTemperature:
+            validTemps[validTemps.length - 1]
+    };
+
+}
+
