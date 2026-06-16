@@ -1,6 +1,7 @@
 import { Table } from "../components/Table/Table.js"
 import { Modal } from "../components/Modal/Modal.js";
 import { TableCajas } from "../TableCajas/TableCajas.js";
+import { initMap } from "../components/Maps/Maps.js";
 import { findBoxTruck } from "../../helpers/wialon.helpers.js";
 import { WialonReportService } from "../../service/remoteWialonApi.js";
 import { parseWialonTimestamp } from "../../utils/parsed_date_time.js";
@@ -158,7 +159,7 @@ const getTemperatureStatsHtml = (stats) => {
     return `
         <div class="row g-3">
 
-            <div class="col-md-3">
+            <div class="col-md-12">
                 <div class="card border-success text-bg-success h-100">
                     <div class="card-body text-center">
                         <h6 class="text-muted mb-2">Temperatura Actual</h6>
@@ -167,7 +168,7 @@ const getTemperatureStatsHtml = (stats) => {
                 </div>
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-12">
                 <div class="card border-danger text-bg-danger h-100">
                     <div class="card-body text-center">
                         <h6 class="text-muted mb-2">Temperatura Máxima</h6>
@@ -176,7 +177,7 @@ const getTemperatureStatsHtml = (stats) => {
                 </div>
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-12">
                 <div class="card border-primary text-bg-primary h-100">
                     <div class="card-body text-center">
                         <h6 class="text-muted mb-2">Temperatura Mínima</h6>
@@ -185,7 +186,7 @@ const getTemperatureStatsHtml = (stats) => {
                 </div>
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-12">
                 <div class="card border-info text-bg-info h-100">
                     <div class="card-body text-center">
                         <h6 class="text-muted mb-2">Promedio</h6>
@@ -198,7 +199,7 @@ const getTemperatureStatsHtml = (stats) => {
 
         <div class="row g-3 mt-1">
 
-            <div class="col-md-4">
+            <!--<div class="col-md-4">
                 <div class="card text-bg-secondary h-100">
                     <div class="card-header">
                         Distribución
@@ -258,9 +259,9 @@ const getTemperatureStatsHtml = (stats) => {
                         </p>
                     </div>
                 </div>
-            </div>
+            </div>-->
 
-        </div>
+       </div>
     `;
 }
 
@@ -428,31 +429,160 @@ const showChartTemperature = async (caja) => {
 
         const unit_name = unit.getName();
 
-        let array_temp = [], array_days = [], array_timestamp = [];
+        let array_temp = [], array_days = [], array_timestamp = [], array_cordenadas = [];
+        let tramos = [];
+        let tramo_actual = null;
+        let dentro_de_tramo = false;
+        let hubo_notificacion = false; // ← bandera para saber si encontramos algún SALIDA/ENTRADA
 
         array_last_messages.forEach((_last_message) => {
-            if (_last_message.pos) {
+
+            // ── Detección de notificaciones (salida/entrada) ──
+            if (_last_message.p?.name === "SALIDA GUZMAN DEV") {
+                // console.log('Sale de planta');
+
+                hubo_notificacion = true;
+                dentro_de_tramo = true;
+                tramo_actual = {
+                    salida: {
+                        timestamp: _last_message.t,
+                        datetime: parseWialonTimestamp(_last_message.t),
+                        x: _last_message.p.x,
+                        y: _last_message.p.y
+                    },
+                    entrada: null,
+                    puntos: []
+                };
+
+            } else if (_last_message.p?.name === "ENTRADA GUZMAN DEV") {
+                // console.log('Entra con cliente');
+
+                hubo_notificacion = true;
+
+                if (dentro_de_tramo && tramo_actual) {
+                    tramo_actual.entrada = {
+                        timestamp: _last_message.t,
+                        datetime: parseWialonTimestamp(_last_message.t),
+                        x: _last_message.p.x,
+                        y: _last_message.p.y
+                    };
+
+                    tramos.push(tramo_actual);
+                    tramo_actual = null;
+                    dentro_de_tramo = false;
+                }
+            }
+
+            // ── Procesamiento de mensajes de posición (pos) ──
+            if (_last_message.pos && dentro_de_tramo) {
                 const date_time = parseWialonTimestamp(_last_message.t);
 
-                let result = unit.calculateSensorValue(sen, _last_message)
+                let result = unit.calculateSensorValue(sen, _last_message);
 
                 if (result != -348201.3876) {
-                    array_days.push(date_time)
-                    array_temp.push(result)
+                    result = Math.round(result);
+                    array_days.push(date_time);
+                    array_temp.push(result);
+                }
+
+                if (tramo_actual) {
+                    tramo_actual.puntos.push({
+                        lat: _last_message.pos.y,
+                        lng: _last_message.pos.x,
+                        titulo: `${result} ℃`,
+                        t: _last_message.t,
+                        temp: result,
+                        speed: _last_message.pos.s,
+                        odometer: _last_message.p?.odometer
+                    });
                 }
             }
 
         });
 
+        // Si quedó un tramo abierto (salió pero aún no hay entrada registrada)
+        if (tramo_actual) {
+            tramos.push(tramo_actual);
+        }
+
+        // ── CASO: nunca hubo notificación de salida ni entrada ──
+        // Guardamos todo el recorrido completo como un único tramo
+        if (!hubo_notificacion) {
+            console.log('No hay notificaciones de salida/entrada, se toma todo el recorrido');
+
+            const tramo_completo = {
+                salida: null,
+                entrada: null,
+                puntos: []
+            };
+
+            array_last_messages.forEach((_last_message) => {
+                if (_last_message.pos) {
+                    const date_time = parseWialonTimestamp(_last_message.t);
+                    let result = unit.calculateSensorValue(sen, _last_message);
+
+                    if (result != -348201.3876) {
+                        result = Math.round(result);
+                        array_days.push(date_time);
+                        array_temp.push(result);
+                    }
+
+                    tramo_completo.puntos.push({
+                        lat: _last_message.pos.y,
+                        lng: _last_message.pos.x,
+                        t: _last_message.t,
+                        titulo: `${result} ℃`,
+                        temp: result,
+                        speed: _last_message.pos.s,
+                        odometer: _last_message.p?.odometer
+                    });
+                }
+            });
+
+            tramos.push(tramo_completo);
+        }
+
         const stats_temp = getTemperatureStats(array_temp);
+        const html = `<div class="container-fluid p-3">
+
+                        <!-- Gráfica de temperatura: ocupa todo el ancho -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div id="root-chart-temperature"></div>
+                            </div>
+                        </div>
+
+                        <!-- Stats + Mapa -->
+                        <div class="row g-3 align-items-stretch">
+
+                            <!-- Stats -->
+                            <div class="col-md-2">
+                                <div class="h-100 d-flex flex-column justify-content-start">
+                                    ${getTemperatureStatsHtml(stats_temp)}
+                                </div>
+                            </div>
+
+                            <!-- Mapa -->
+                            <div class="col-md-10">
+                                <div id="map" class="w-100 rounded" style="aspect-ratio: 16 / 9;"></div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                        
+                    `
 
         Modal({
             title: 'Grafica de temperaturas',
-            body: `<div id="root-chart-temperature" ></div>
-                    ${getTemperatureStatsHtml(stats_temp)}`,
+            body: html,
             modal_size: 'modal-fullscreen',
         });
 
+        console.log(tramos[0].puntos);
+
+
+        initMap(tramos[0].puntos);
         init_chart_temperature({ caja: unit_name, array_temp, array_days });
 
     } catch (error) {

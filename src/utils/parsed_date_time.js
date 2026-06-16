@@ -15,7 +15,5 @@ export function parseWialonTimestamp(timestamp) {
     pad(date.getHours())
   }:${
     pad(date.getMinutes())
-  }:${
-    pad(date.getSeconds())
   }`;
 }
