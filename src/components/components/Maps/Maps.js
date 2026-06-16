@@ -16,9 +16,6 @@ export function initMap(puntos) {
     const map = new google.maps.Map(document.getElementById("map"), {
         zoom: 12,
         center: { lat: puntos[0].lat, lng: puntos[0].lng },
-         mapTypeId: "satellite",
-    tilt: 45,        // ← activa la inclinación 3D
-    heading: 0,       // ángulo de rotación (0-360)
     });
 
 
