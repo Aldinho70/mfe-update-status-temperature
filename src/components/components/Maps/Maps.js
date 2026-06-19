@@ -1,5 +1,3 @@
-// import { unitSectionDetails } from "../../componets/Units/UnitsSection.js";
-
 import { obtenerPuntosDeCambioTemperatura } from "../../../utils/temp.utils.js";
 import { Modal } from "../Modal/Modal.js";
 export let map3D = null;
@@ -12,24 +10,31 @@ const mexico_google_maps = {
 };
 
 
-export function initMap(puntos) {
+export function initMap(tramos, data_unit) {
+    console.log(tramos);
+    const { puntos, salida, entrada } = tramos
+
+    const puntosCambioTemp = obtenerPuntosDeCambioTemperatura(puntos);
+
     const map = new google.maps.Map(document.getElementById("map"), {
         zoom: 12,
         center: { lat: puntos[0].lat, lng: puntos[0].lng },
     });
 
+    initPolyline(map, puntos);
+    addMarkers(map, puntosCambioTemp);
 
-    agregarPolyline(map, puntos);
-
-    const puntosCambioTemp = obtenerPuntosDeCambioTemperatura(puntos);
-    agregarMarcadores(map, puntosCambioTemp);
+    if (salida != null && entrada != null) {
+        addMarkerStartEnd(map, puntos, data_unit, true);
+    } else {
+        addMarkerStartEnd(map, puntos, data_unit, false);
+    }
 }
 
-// ─── Marcadores con etiqueta tipo A, B, C... ───────────────────────────────
-function agregarMarcadores(map, puntos) {
-    puntos.forEach(function (punto, index) {
 
-        const etiqueta = `${punto.temp}`
+function addMarkers(map, puntos) {
+    const markers = puntos.map((punto, index) => {
+        const etiqueta = `${punto.titulo}`
 
         const marcador = new google.maps.Marker({
             position: { lat: punto.lat, lng: punto.lng },
@@ -46,18 +51,30 @@ function agregarMarcadores(map, puntos) {
                 fillOpacity: 1,
                 strokeColor: "#ffffff",
                 strokeWeight: 2,
-                scale: 14,                    // Tamaño del círculo
+                scale: 20,
                 labelOrigin: new google.maps.Point(0, 0),
             },
         });
 
-        marcador.addListener("click", function () {
-            onMarcadorClick(punto);
-        });
+        marcador.addListener("click", () => onMarcadorClick(punto, etiqueta));
+
+        marcador.addListener("mouseover", () => onMarkerMouseOver(punto, marcador));
+
+        marcador.addListener("mouseout", () => onMarkerMouseOut(punto, marcador));
+
+        return marcador;
+    });
+
+    // El clusterer maneja el mapa y el agrupamiento
+    new markerClusterer.MarkerClusterer({
+        map,
+        markers,
+        algorithm: new markerClusterer.SuperClusterAlgorithm({
+            radius: 80, // ← distancia en px para agrupar (ajústalo a tu gusto)
+        }),
     });
 }
 
-// ─── Acción al hacer click ──────────────────────────────────────────────────
 function onMarcadorClick(punto) {
     Modal({
         title: 'Datos de temperatura',
@@ -86,15 +103,69 @@ function onMarcadorClick(punto) {
     });
 }
 
+// Creamos UN solo InfoWindow reutilizable (no uno por marcador)
+const infoWindow = new google.maps.InfoWindow();
+
+function onMarkerMouseOver(punto, marcador) {
+    infoWindow.setContent(`
+        <div class="card bg-secondary text-white" style="min-width: 180px;">
+            <div class="card-body p-2">
+                <h6 class="card-title mb-1">
+                    <i class="bi bi-geo-alt-fill me-1"></i>
+                    ${punto.name_ubication}
+                </h6>
+                <p class="card-text mb-0" style="font-size: 13px;">
+                    🌡️ Temp: <strong>${punto.temp}°C</strong>
+                </p>
+                <small class="text-white-50">${punto.datetime || ''}</small>
+            </div>
+        </div>
+    `);
+
+    infoWindow.open({
+        anchor: marcador,
+        shouldFocus: false,
+    });
+}
+
+function onMarkerMouseOut() {
+    infoWindow.close();
+}
+
+function initPolyline(map, puntos) {
+    const coordenadas = puntos.map(p => ({ lat: p.lat, lng: p.lng }));
+
+    return new google.maps.Polyline({
+        path: coordenadas,
+        map: map,
+        strokeColor: "#FF0000",
+        strokeOpacity: 1.0,
+        strokeWeight: 4,
+    });
+}
+
+export async function getNameUbication(lat, lng) {
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=TU_API_KEY&language=es`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.status === "OK" && data.results.length > 0) {
+        return data.results[0].formatted_address; // dirección completa
+    }
+
+    return "Ubicación desconocida";
+}
+
 // ─── Ruta por calles sin marcadores propios de Google ──────────────────────
-function trazarRutaPorCalles(map, puntos) {
+function traceRuteByStreets(map, puntos) {
     const directionsService = new google.maps.DirectionsService();
     const directionsRenderer = new google.maps.DirectionsRenderer({
-        suppressMarkers: true,
+        suppressMarkers: false,
         polylineOptions: {
             strokeColor: "#FF0000",  // ← cambia el color aquí
             strokeOpacity: 1.0,
-            strokeWeight: 5,
+            strokeWeight: 10,
         },
     });
     directionsRenderer.setMap(map);
@@ -123,19 +194,66 @@ function trazarRutaPorCalles(map, puntos) {
     );
 }
 
-function agregarPolyline(map, puntos) {
-    const coordenadas = puntos.map(p => ({ lat: p.lat, lng: p.lng }));
+function addMarkerStartEnd(map, puntos, unit, is_all_travel) {
+    if (!puntos || puntos.length === 0) return;
 
-    return new google.maps.Polyline({
-        path: coordenadas,
+    const primerPunto = puntos[0];
+    const ultimoPunto = puntos[puntos.length - 1];
+    let marcadorInicio = {}
+
+    // ── Marcador de INICIO ──────────────────────────────────────
+
+    if (is_all_travel) {
+        marcadorInicio = new google.maps.Marker({
+            position: { lat: primerPunto.lat, lng: primerPunto.lng },
+            map: map,
+            title: "Inicio de viaje",
+            icon: {
+                url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png",
+                scaledSize: new google.maps.Size(44, 44),
+            },
+            label: {
+                text: "Inicio de viaje", // o usa "A", "INICIO", etc.
+                fontSize: "32px",
+            },
+            zIndex: 999, // siempre arriba de los demás marcadores
+        })
+
+        marcadorInicio.addListener("click", () => {
+            onMarcadorClick({
+                ...primerPunto,
+                titulo: "Salida de planta",
+            });
+        });
+    }
+
+    // ── Marcador de FIN ──────────────────────────────────────────
+    const marcadorFin = new google.maps.Marker({
+        position: { lat: ultimoPunto.lat, lng: ultimoPunto.lng },
         map: map,
-        strokeColor: "#FF0000",
-        strokeOpacity: 1.0,
-        strokeWeight: 4,
+        title: "Fin de viaje",
+        icon: {
+            url: unit.getIconUrl(32),
+            scaledSize: new google.maps.Size(44, 44),
+        },
+        // label: {
+        //     text: "Fin de recorrido",
+        //     fontSize: "16px",
+        // },
+        zIndex: 999,
     });
+
+    marcadorFin.addListener("click", () => {
+        onMarcadorClick({
+            ...ultimoPunto,
+            titulo: "Llegada / Fin de recorrido",
+        });
+    });
+
+    return { marcadorInicio, marcadorFin };
 }
 
-/* Operacion */
+/* Maps 3D */
 export async function init3DMap(locations) {
     const { Map3DElement, MapMode, Marker3DInteractiveElement } = await google.maps.importLibrary("maps3d");
     const { PinElement } = await google.maps.importLibrary("marker");

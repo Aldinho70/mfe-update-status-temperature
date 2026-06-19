@@ -2,6 +2,7 @@ import { Table } from "../components/Table/Table.js"
 import { Modal } from "../components/Modal/Modal.js";
 import { TableCajas } from "../TableCajas/TableCajas.js";
 import { initMap } from "../components/Maps/Maps.js";
+import { getNameUbication } from "../components/Maps/Maps.js";
 import { findBoxTruck } from "../../helpers/wialon.helpers.js";
 import { WialonReportService } from "../../service/remoteWialonApi.js";
 import { parseWialonTimestamp } from "../../utils/parsed_date_time.js";
@@ -435,7 +436,7 @@ const showChartTemperature = async (caja) => {
         let dentro_de_tramo = false;
         let hubo_notificacion = false; // ← bandera para saber si encontramos algún SALIDA/ENTRADA
 
-        array_last_messages.forEach((_last_message) => {
+        array_last_messages.forEach( async (_last_message) => {
 
             // ── Detección de notificaciones (salida/entrada) ──
             if (_last_message.p?.name === "SALIDA GUZMAN DEV") {
@@ -493,7 +494,9 @@ const showChartTemperature = async (caja) => {
                         t: _last_message.t,
                         temp: result,
                         speed: _last_message.pos.s,
-                        odometer: _last_message.p?.odometer
+                        odometer: _last_message.p?.odometer,
+                        viaje_completo: true,
+                        // name_ubication: await getNameUbication( _last_message.pos.y, _last_message.pos.x ),
                     });
                 }
             }
@@ -516,7 +519,7 @@ const showChartTemperature = async (caja) => {
                 puntos: []
             };
 
-            array_last_messages.forEach((_last_message) => {
+            array_last_messages.forEach(async (_last_message) => {
                 if (_last_message.pos) {
                     const date_time = parseWialonTimestamp(_last_message.t);
                     let result = unit.calculateSensorValue(sen, _last_message);
@@ -534,7 +537,9 @@ const showChartTemperature = async (caja) => {
                         titulo: `${result} ℃`,
                         temp: result,
                         speed: _last_message.pos.s,
-                        odometer: _last_message.p?.odometer
+                        odometer: _last_message.p?.odometer,
+                        viaje_completo: false
+                        // name_ubication: await getNameUbication( _last_message.pos.y, _last_message.pos.x ),
                     });
                 }
             });
@@ -579,13 +584,13 @@ const showChartTemperature = async (caja) => {
             modal_size: 'modal-fullscreen',
         });
 
-        console.log(tramos[0].puntos);
-
-
-        initMap(tramos[0].puntos);
+        
+        initMap(tramos[0], unit);
         init_chart_temperature({ caja: unit_name, array_temp, array_days });
 
     } catch (error) {
+        console.log(error);
+        
         Modal({
             title: 'Error al generar la grafica',
             body: `<div class="alert alert-warning text-center my-3">

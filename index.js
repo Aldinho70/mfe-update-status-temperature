@@ -13,10 +13,6 @@ $(async () => {
             const groups_with_units = await WialonService.loadGroupsWithUnits(GROUPS_FILTER);
             mapUnits( groups_with_units );
             
-            // const google_maps = await initMap([]);
-            // console.log(google_maps);
-            // $("body").append(google_maps)
-            
         } catch (err) {
             console.error(err);
         }
@@ -26,11 +22,7 @@ $(async () => {
         try {
             console.log('Recargando informacion');
             
-            // const units = await WialonService.loadUnits();
-            // console.log(units);
-
             const groups_with_units = await WialonService.loadGroupsWithUnits(GROUPS_FILTER);
-            // console.log(groups_with_units);
             mapUnits( groups_with_units );
 
         } catch (err) {
@@ -38,7 +30,6 @@ $(async () => {
         }
     };
 
-    // Ejecutar login + primera carga
     await initWialon();
 
     // Repetir cada 50 segundos
