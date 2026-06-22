@@ -13,8 +13,11 @@ const mexico_google_maps = {
 export function initMap(tramos, data_unit) {
     console.log(tramos);
     const { puntos, salida, entrada } = tramos
+    const flag_all_travel = (salida != null && entrada != null) ? true : false;
 
     const puntosCambioTemp = obtenerPuntosDeCambioTemperatura(puntos);
+    console.log(flag_all_travel);
+    
 
     const map = new google.maps.Map(document.getElementById("map"), {
         zoom: 12,
@@ -24,11 +27,7 @@ export function initMap(tramos, data_unit) {
     initPolyline(map, puntos);
     addMarkers(map, puntosCambioTemp);
 
-    if (salida != null && entrada != null) {
-        addMarkerStartEnd(map, puntos, data_unit, true);
-    } else {
-        addMarkerStartEnd(map, puntos, data_unit, false);
-    }
+    addMarkerStartEnd(map, puntos, data_unit, flag_all_travel);
 }
 
 
@@ -194,16 +193,20 @@ function traceRuteByStreets(map, puntos) {
     );
 }
 
-function addMarkerStartEnd(map, puntos, unit, is_all_travel) {
+async function addMarkerStartEnd(map, puntos, unit, is_all_travel) {
     if (!puntos || puntos.length === 0) return;
+
+    let marcadorInicio = {}
+    let direction_start = null
+    let travel = ``
 
     const primerPunto = puntos[0];
     const ultimoPunto = puntos[puntos.length - 1];
-    let marcadorInicio = {}
-
-    // ── Marcador de INICIO ──────────────────────────────────────
 
     if (is_all_travel) {
+        direction_start = await WialonService.getDirection( primerPunto.lat, primerPunto.lng );    
+        travel += `La unidad salió de planta desde ${ direction_start } `;
+        
         marcadorInicio = new google.maps.Marker({
             position: { lat: primerPunto.lat, lng: primerPunto.lng },
             map: map,
@@ -228,6 +231,14 @@ function addMarkerStartEnd(map, puntos, unit, is_all_travel) {
     }
 
     // ── Marcador de FIN ──────────────────────────────────────────
+    const direction_end = await WialonService.getDirection( ultimoPunto.lat, ultimoPunto.lng );    
+    if( direction_start == null ){
+        direction_start = await WialonService.getDirection( primerPunto.lat, primerPunto.lng );    
+        travel += `No se detectó salida de planta. Se muestra el recorrido actual desde ${direction_start} hasta ${direction_end}`
+    }else if( direction_start == null && is_all_travel) {
+        travel += `y completó el recorrido llegando a ${direction_end}`
+    }
+
     const marcadorFin = new google.maps.Marker({
         position: { lat: ultimoPunto.lat, lng: ultimoPunto.lng },
         map: map,
@@ -243,6 +254,7 @@ function addMarkerStartEnd(map, puntos, unit, is_all_travel) {
         zIndex: 999,
     });
 
+    $("#root-travel").html(travel)
     marcadorFin.addListener("click", () => {
         onMarcadorClick({
             ...ultimoPunto,

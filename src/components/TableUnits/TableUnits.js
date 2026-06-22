@@ -415,33 +415,29 @@ const showChartTemperature = async (caja) => {
     try {
 
         const find_caja = await findBoxTruck(caja);
-
         const unit_selected = find_caja.id;
-
         const session = await WialonService.getSession();
-
         const unit = await session.getItem(unit_selected);
-
         const sen = await WialonService.getSensor(unit_selected, ['TEMPERATURA', 'Temperatura']);
-
         const last_messages = await WialonService.getLastMessages(unit_selected);
-
         const array_last_messages = last_messages.messages;
-
         const unit_name = unit.getName();
 
         let array_temp = [], array_days = [], array_timestamp = [], array_cordenadas = [];
         let tramos = [];
+        let travel = ``;
         let tramo_actual = null;
         let dentro_de_tramo = false;
-        let hubo_notificacion = false; // ← bandera para saber si encontramos algún SALIDA/ENTRADA
+        let hubo_notificacion = false; 
 
         array_last_messages.forEach( async (_last_message) => {
-
+            
             // ── Detección de notificaciones (salida/entrada) ──
             if (_last_message.p?.name === "SALIDA GUZMAN DEV") {
-                // console.log('Sale de planta');
 
+                travel += `La unidad sale de planta`
+
+                
                 hubo_notificacion = true;
                 dentro_de_tramo = true;
                 tramo_actual = {
@@ -560,6 +556,19 @@ const showChartTemperature = async (caja) => {
                         <!-- Stats + Mapa -->
                         <div class="row g-3 align-items-stretch">
 
+                            <div class="col-md-12">
+                                <div class="card text-bg-secondary mb-3 w-100">
+                                    <div class="card-header">
+                                        <i class="bi bi-map me-1"></i> Resumen del recorrido
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="card-text" id="travel-message">
+                                            <span class="" id="root-travel"></span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Stats -->
                             <div class="col-md-2">
                                 <div class="h-100 d-flex flex-column justify-content-start">
@@ -583,7 +592,6 @@ const showChartTemperature = async (caja) => {
             body: html,
             modal_size: 'modal-fullscreen',
         });
-
         
         initMap(tramos[0], unit);
         init_chart_temperature({ caja: unit_name, array_temp, array_days });

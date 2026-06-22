@@ -265,9 +265,7 @@ const WialonService = (() => {
 
       message_loader.loadInterval(id_unit, from, to, 0, 0, 10000000, (code, data) => {
         if (code) {
-          return reject(
-            wialon.core.Errors.getErrorText(code)
-          );
+          return reject( wialon.core.Errors.getErrorText(code) );
         }
         resolve(data);
       }
@@ -275,6 +273,17 @@ const WialonService = (() => {
     });
   }
 
+  async function getDirection(lat, lng) {
+    return new Promise((resolve, reject) => {
+      wialon.util.Gis.getLocations([{ lon: lng, lat: lat }], function (code, address) {
+        if (code) {
+          return reject((wialon.core.Errors.getErrorText(code)));
+        }
+        resolve(address);
+      });
+    })
+  }
+  
   /* Ejecutar reporte */
   function getReportAccount(name_account, name_report) {
     return new Promise((resolve, reject) => {
@@ -443,6 +452,7 @@ const WialonService = (() => {
     loadUnits,
     getSensor,
     getSession,
+    getDirection,
     getServerTime,
     getCustomFields,
     getLastMessages,
