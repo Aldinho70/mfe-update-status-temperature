@@ -1,4 +1,3 @@
-
 const WialonService = (() => {
   let session = null;
   let initialized = false;
@@ -103,15 +102,19 @@ const WialonService = (() => {
       const unitFlags =
         wialon.item.Item.dataFlag.base |
         wialon.item.Unit.dataFlag.sensors |
+        wialon.item.Item.dataFlag.messages |
+        wialon.item.Resource.dataFlag.base |
         wialon.item.Resource.dataFlag.reports |
         wialon.item.Item.dataFlag.adminFields |
+        wialon.item.Unit.dataFlag.lastMessage |
         wialon.item.Item.dataFlag.customFields |
-        wialon.item.Unit.dataFlag.lastMessage;
+        wialon.item.Resource.dataFlag.notifications;
 
       session.loadLibrary("itemIcon");
       session.loadLibrary("unitSensors");
       session.loadLibrary("resourceReports");
       session.loadLibrary("itemCustomFields");
+      session.loadLibrary("resourceNotifications");
 
       const groupFlags =
         wialon.item.Item.dataFlag.base;
@@ -125,48 +128,44 @@ const WialonService = (() => {
         (code) => {
           if (code) return reject(code);
 
+          const resource = session.getItems("avl_resource") || [];
           const groups = session.getItems("avl_unit_group") || [];
-          const result = groups
-            .filter(group =>
-              groups_filter.some(f => group.getName().includes(f))
-            )
-            .map(group => {
-              const units = group.getUnits() || [];
 
-              const parsedUnits = units.map((_u) => {
-                const u = session.getItem(_u);
-                const p = u.getPosition();
-                const sens = u.getSensors();
-                const flds = u.getCustomFields();
-                const lastMessage = u.getLastMessage();
-
-                return {
-                  id: u.getId(),
-                  name: u.getName(),
-                  Unidad: u.getName(),
-                  icon: u.getIconUrl(32),
-                  Latitud: p?.y,
-                  Longitud: p?.x,
-                  speed: p?.s,
-                  Velocidad: p?.s,
-                  timestamp: p?.t,
-                  Voltaje: 0,
-                  Online: 0,
-                  fields_customers: flds,
-                  sens,
-                  lastMessage,
-                };
-              });
+          const result = groups.filter(group => groups_filter.some(f => group.getName().includes(f))).map(group => {
+            const units = group.getUnits() || [];
+            const parsedUnits = units.map((_u) => {
+              const u = session.getItem(_u);
+              const p = u.getPosition();
+              const sens = u.getSensors();
+              const flds = u.getCustomFields();
+              const lastMessage = u.getLastMessage();
 
               return {
-                group_id: group.getId(),
-                group_name: group.getName(),
-                units: parsedUnits,
+                id: u.getId(),
+                name: u.getName(),
+                Unidad: u.getName(),
+                icon: u.getIconUrl(32),
+                Latitud: p?.y,
+                Longitud: p?.x,
+                speed: p?.s,
+                Velocidad: p?.s,
+                timestamp: p?.t,
+                Voltaje: 0,
+                Online: 0,
+                fields_customers: flds,
+                sens,
+                lastMessage,
               };
             });
 
+            return {
+              group_id: group.getId(),
+              group_name: group.getName(),
+              units: parsedUnits,
+            };
+          });
 
-
+          getNotifications(resource);
           resolve(result);
         }
       );
@@ -265,7 +264,7 @@ const WialonService = (() => {
 
       message_loader.loadInterval(id_unit, from, to, 0, 0, 10000000, (code, data) => {
         if (code) {
-          return reject( wialon.core.Errors.getErrorText(code) );
+          return reject(wialon.core.Errors.getErrorText(code));
         }
         resolve(data);
       }
@@ -283,7 +282,52 @@ const WialonService = (() => {
       });
     })
   }
-  
+
+  function getNotifications(res) {
+
+    for (var i = 0; i < res.length; i++) {
+      res[i].addListener("messageRegistered", processNotification);
+    }
+  }
+
+  function processNotification(event) {
+    const data = event.getData(); // get data from event
+    const unit = session.getItem(data.unit);
+
+    if (data.tp && data.tp == "unm") {
+      // addNotificationToast(unit, data)
+      // console.log(data);
+      if (data.name == 'DEV-VAR-TEMP') {
+        // console.log(data);
+        addNotificationToast(unit, data)
+      }
+    }
+  }
+
+  function addNotificationToast(unit, data) {
+    $("#root-toast").html(
+      `<div class="toast-header">
+          <img src="${unit.getIconUrl(32)}" class="rounded me-2" width="45" alt="...">
+          <strong class="me-auto fs-4">${unit.getName()}</strong>
+          <small class="text-muted">Ahora mismo</small>
+          <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body p-3">
+          <p class="fw-bold fs-5 mb-1">${data.name}</p>
+          <hr class="my-1">
+          <p class="text-muted fs-6 mb-0">${data.txt}</p>
+      </div>`
+    )
+
+    showToast('#root-toast')
+  }
+
+  function showToast(idToast) {
+    const toastElement = $(idToast);
+    const toastInstance = new bootstrap.Toast(toastElement);
+    toastInstance.show();
+  }
+
   /* Ejecutar reporte */
   function getReportAccount(name_account, name_report) {
     return new Promise((resolve, reject) => {
@@ -455,6 +499,7 @@ const WialonService = (() => {
     getDirection,
     getServerTime,
     getCustomFields,
+    getNotifications,
     getLastMessages,
     updateCustomField,
     loadGroupsWithUnits,

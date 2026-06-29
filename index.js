@@ -23,7 +23,7 @@ $(async () => {
             console.log('Recargando informacion');
             
             const groups_with_units = await WialonService.loadGroupsWithUnits(GROUPS_FILTER);
-            mapUnits( groups_with_units );
+            // mapUnits( groups_with_units );
 
         } catch (err) {
             console.error(err);
@@ -33,5 +33,5 @@ $(async () => {
     await initWialon();
 
     // Repetir cada 50 segundos
-    // setInterval(relouder, 50 * 1000);
+    setInterval(relouder, 50 * 1000);
 })
