@@ -411,194 +411,275 @@ const updateCaja = (unit_selected) => {
 }
 window.updateCaja = updateCaja;
 
-const showChartTemperature = async (caja) => {
-    try {
+const buildTemperatureModalBody = ({ stats_temp, travel }) => {
+    return `<div class="container-fluid p-3">
 
-        const find_caja = await findBoxTruck(caja);
-        const unit_selected = find_caja.id;
-        const session = await WialonService.getSession();
-        const unit = await session.getItem(unit_selected);
-        const sen = await WialonService.getSensor(unit_selected, ['TEMPERATURA', 'Temperatura']);
-        const last_messages = await WialonService.getLastMessages(unit_selected);
-        const array_last_messages = last_messages.messages;
-        const unit_name = unit.getName();
+            <!-- Gráfica de temperatura: ocupa todo el ancho -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div id="root-chart-temperature"></div>
+                </div>
+            </div>
 
-        let array_temp = [], array_days = [], array_timestamp = [], array_cordenadas = [];
-        let tramos = [];
-        let travel = ``;
-        let tramo_actual = null;
-        let dentro_de_tramo = false;
-        let hubo_notificacion = false; 
+            <!-- Stats + Mapa -->
+            <div class="row g-3 align-items-stretch">
 
-        array_last_messages.forEach( async (_last_message) => {
-            
-            // ── Detección de notificaciones (salida/entrada) ──
-            if (_last_message.p?.name === "SALIDA GUZMAN DEV") {
+                <div class="col-md-12">
+                    <div class="card text-bg-secondary mb-3 w-100">
+                        <div class="card-header">
+                            <i class="bi bi-map me-1"></i> Resumen del recorrido
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text" id="travel-message">
+                                <span class="" id="root-travel">${travel}</span>
+                            </p>
 
-                travel += `La unidad sale de planta`
+                            <div class="d-flex gap-3 mt-3">
+                                <small class="text-muted" id="last-update-text">Última actualización: --</small>
+                                <small class="text-muted" id="next-update-text">Próxima actualización en: 60s</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                
-                hubo_notificacion = true;
-                dentro_de_tramo = true;
-                tramo_actual = {
-                    salida: {
-                        timestamp: _last_message.t,
-                        datetime: parseWialonTimestamp(_last_message.t),
-                        x: _last_message.p.x,
-                        y: _last_message.p.y
-                    },
-                    entrada: null,
-                    puntos: []
+                <!-- Stats -->
+                <div class="col-md-2">
+                    <div class="h-100 d-flex flex-column justify-content-start">
+                        ${getTemperatureStatsHtml(stats_temp)}
+                    </div>
+                </div>
+
+                <!-- Mapa -->
+                <div class="col-md-10">
+                    <div id="map" class="w-100 rounded" style="aspect-ratio: 16 / 9;"></div>
+                </div>
+
+            </div>
+
+        </div>`;
+};
+
+const fetchTemperatureModalData = async (caja) => {
+    const find_caja = await findBoxTruck(caja);
+    if (!find_caja) {
+        throw new Error('No fue posible encontrar la caja seleccionada');
+    }
+
+    const unit_selected = find_caja.id;
+    const session = await WialonService.getSession();
+    const unit = await session.getItem(unit_selected);
+    const sen = await WialonService.getSensor(unit_selected, ['TEMPERATURA', 'Temperatura']);
+    const last_messages = await WialonService.getLastMessages(unit_selected);
+    const array_last_messages = last_messages.messages || [];
+    const unit_name = unit.getName();
+
+    let array_temp = [];
+    let array_days = [];
+    let tramos = [];
+    let travel = ``;
+    let tramo_actual = null;
+    let dentro_de_tramo = false;
+    let hubo_notificacion = false;
+
+    for (const _last_message of array_last_messages) {
+        if (_last_message.p?.name === 'SALIDA GUZMAN DEV') {
+            travel = 'La unidad sale de planta';
+            hubo_notificacion = true;
+            dentro_de_tramo = true;
+            tramo_actual = {
+                salida: {
+                    timestamp: _last_message.t,
+                    datetime: parseWialonTimestamp(_last_message.t),
+                    x: _last_message.p.x,
+                    y: _last_message.p.y,
+                },
+                entrada: null,
+                puntos: [],
+            };
+
+        } else if (_last_message.p?.name === 'ENTRADA GUZMAN DEV') {
+            hubo_notificacion = true;
+
+            if (dentro_de_tramo && tramo_actual) {
+                tramo_actual.entrada = {
+                    timestamp: _last_message.t,
+                    datetime: parseWialonTimestamp(_last_message.t),
+                    x: _last_message.p.x,
+                    y: _last_message.p.y,
                 };
+                tramos.push(tramo_actual);
+                tramo_actual = null;
+                dentro_de_tramo = false;
+            }
+        }
 
-            } else if (_last_message.p?.name === "ENTRADA GUZMAN DEV") {
-                // console.log('Entra con cliente');
+        if (_last_message.pos && dentro_de_tramo) {
+            const date_time = parseWialonTimestamp(_last_message.t);
+            let result = unit.calculateSensorValue(sen, _last_message);
 
-                hubo_notificacion = true;
-
-                if (dentro_de_tramo && tramo_actual) {
-                    tramo_actual.entrada = {
-                        timestamp: _last_message.t,
-                        datetime: parseWialonTimestamp(_last_message.t),
-                        x: _last_message.p.x,
-                        y: _last_message.p.y
-                    };
-
-                    tramos.push(tramo_actual);
-                    tramo_actual = null;
-                    dentro_de_tramo = false;
-                }
+            if (result !== -348201.3876) {
+                result = Math.round(result);
+                array_days.push(date_time);
+                array_temp.push(result);
             }
 
-            // ── Procesamiento de mensajes de posición (pos) ──
-            if (_last_message.pos && dentro_de_tramo) {
-                const date_time = parseWialonTimestamp(_last_message.t);
+            if (tramo_actual) {
+                tramo_actual.puntos.push({
+                    lat: _last_message.pos.y,
+                    lng: _last_message.pos.x,
+                    titulo: `${result} ℃`,
+                    t: _last_message.t,
+                    temp: result,
+                    speed: _last_message.pos.s,
+                    odometer: _last_message.p?.odometer,
+                    viaje_completo: true,
+                });
+            }
+        }
+    }
 
+    if (tramo_actual) {
+        tramos.push(tramo_actual);
+    }
+
+    if (!hubo_notificacion) {
+        const tramo_completo = {
+            salida: null,
+            entrada: null,
+            puntos: [],
+        };
+
+        for (const _last_message of array_last_messages) {
+            if (_last_message.pos) {
+                const date_time = parseWialonTimestamp(_last_message.t);
                 let result = unit.calculateSensorValue(sen, _last_message);
 
-                if (result != -348201.3876) {
+                if (result !== -348201.3876) {
                     result = Math.round(result);
                     array_days.push(date_time);
                     array_temp.push(result);
                 }
 
-                if (tramo_actual) {
-                    tramo_actual.puntos.push({
-                        lat: _last_message.pos.y,
-                        lng: _last_message.pos.x,
-                        titulo: `${result} ℃`,
-                        t: _last_message.t,
-                        temp: result,
-                        speed: _last_message.pos.s,
-                        odometer: _last_message.p?.odometer,
-                        viaje_completo: true,
-                        // name_ubication: await getNameUbication( _last_message.pos.y, _last_message.pos.x ),
-                    });
-                }
+                tramo_completo.puntos.push({
+                    lat: _last_message.pos.y,
+                    lng: _last_message.pos.x,
+                    t: _last_message.t,
+                    titulo: `${result} ℃`,
+                    temp: result,
+                    speed: _last_message.pos.s,
+                    odometer: _last_message.p?.odometer,
+                    viaje_completo: false,
+                });
+            }
+        }
+
+        tramos.push(tramo_completo);
+    }
+
+    return {
+        tramos,
+        unit,
+        unit_name,
+        array_temp,
+        array_days,
+        stats_temp: getTemperatureStats(array_temp),
+        travel,
+    };
+};
+
+const updateTimerDisplays = (modal_id, secondsRemaining) => {
+    const lastUpdateText = document.querySelector(`#${modal_id} #last-update-text`);
+    const nextUpdateText = document.querySelector(`#${modal_id} #next-update-text`);
+
+    if (lastUpdateText && !lastUpdateText.dataset.updatedAt) {
+        lastUpdateText.dataset.updatedAt = new Date().toLocaleTimeString();
+        lastUpdateText.innerText = `Última actualización: ${lastUpdateText.dataset.updatedAt}`;
+    }
+
+    if (nextUpdateText) {
+        nextUpdateText.innerText = `Próxima actualización en: ${secondsRemaining}s`;
+    }
+};
+
+const updateTemperatureModalContent = async (modal_id, caja) => {
+    const data = await fetchTemperatureModalData(caja);
+    const modalBody = document.querySelector(`#${modal_id} .modal-body`);
+    if (!modalBody) {
+        return;
+    }
+
+    modalBody.innerHTML = buildTemperatureModalBody(data);
+
+    if (data.tramos[0]?.puntos?.length) {
+        initMap(data.tramos[0], data.unit);
+    }
+
+    init_chart_temperature({
+        caja: data.unit_name,
+        array_temp: data.array_temp,
+        array_days: data.array_days,
+    });
+
+    const lastUpdateText = document.querySelector(`#${modal_id} #last-update-text`);
+    if (lastUpdateText) {
+        lastUpdateText.dataset.updatedAt = new Date().toLocaleTimeString();
+        lastUpdateText.innerText = `Última actualización: ${lastUpdateText.dataset.updatedAt}`;
+    }
+};
+
+const showChartTemperature = async (caja) => {
+    try {
+        const instanceHtml = buildTemperatureModalBody({ stats_temp: null, travel: 'Cargando datos...' });
+        const modal_id = Modal({
+            title: 'Grafica de temperaturas',
+            body: instanceHtml,
+            modal_size: 'modal-fullscreen',
+            footer: true,
+        });
+
+        await updateTemperatureModalContent(modal_id, caja);
+
+        window.modalRefreshIntervals = window.modalRefreshIntervals || {};
+        window.modalRefreshIntervals[modal_id] = window.modalRefreshIntervals[modal_id] || {};
+
+        if (window.modalRefreshIntervals[modal_id].refreshId) {
+            clearInterval(window.modalRefreshIntervals[modal_id].refreshId);
+        }
+
+        if (window.modalRefreshIntervals[modal_id].countdownId) {
+            clearInterval(window.modalRefreshIntervals[modal_id].countdownId);
+        }
+
+        window.modalRefreshIntervals[modal_id].secondsRemaining = 60;
+        updateTimerDisplays(modal_id, window.modalRefreshIntervals[modal_id].secondsRemaining);
+
+        window.modalRefreshIntervals[modal_id].refreshId = setInterval(async () => {
+            if (!document.getElementById(modal_id)) {
+                clearInterval(window.modalRefreshIntervals[modal_id].refreshId);
+                clearInterval(window.modalRefreshIntervals[modal_id].countdownId);
+                delete window.modalRefreshIntervals[modal_id];
+                return;
             }
 
-        });
+            await updateTemperatureModalContent(modal_id, caja);
+            window.modalRefreshIntervals[modal_id].secondsRemaining = 60;
+        }, 60 * 1000);
 
-        // Si quedó un tramo abierto (salió pero aún no hay entrada registrada)
-        if (tramo_actual) {
-            tramos.push(tramo_actual);
-        }
+        window.modalRefreshIntervals[modal_id].countdownId = setInterval(() => {
+            if (!document.getElementById(modal_id)) {
+                clearInterval(window.modalRefreshIntervals[modal_id].countdownId);
+                return;
+            }
 
-        // ── CASO: nunca hubo notificación de salida ni entrada ──
-        // Guardamos todo el recorrido completo como un único tramo
-        if (!hubo_notificacion) {
-            console.log('No hay notificaciones de salida/entrada, se toma todo el recorrido');
+            const state = window.modalRefreshIntervals[modal_id];
+            if (!state) return;
 
-            const tramo_completo = {
-                salida: null,
-                entrada: null,
-                puntos: []
-            };
-
-            array_last_messages.forEach(async (_last_message) => {
-                if (_last_message.pos) {
-                    const date_time = parseWialonTimestamp(_last_message.t);
-                    let result = unit.calculateSensorValue(sen, _last_message);
-
-                    if (result != -348201.3876) {
-                        result = Math.round(result);
-                        array_days.push(date_time);
-                        array_temp.push(result);
-                    }
-
-                    tramo_completo.puntos.push({
-                        lat: _last_message.pos.y,
-                        lng: _last_message.pos.x,
-                        t: _last_message.t,
-                        titulo: `${result} ℃`,
-                        temp: result,
-                        speed: _last_message.pos.s,
-                        odometer: _last_message.p?.odometer,
-                        viaje_completo: false
-                        // name_ubication: await getNameUbication( _last_message.pos.y, _last_message.pos.x ),
-                    });
-                }
-            });
-
-            tramos.push(tramo_completo);
-        }
-
-        const stats_temp = getTemperatureStats(array_temp);
-        const html = `<div class="container-fluid p-3">
-
-                        <!-- Gráfica de temperatura: ocupa todo el ancho -->
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                <div id="root-chart-temperature"></div>
-                            </div>
-                        </div>
-
-                        <!-- Stats + Mapa -->
-                        <div class="row g-3 align-items-stretch">
-
-                            <div class="col-md-12">
-                                <div class="card text-bg-secondary mb-3 w-100">
-                                    <div class="card-header">
-                                        <i class="bi bi-map me-1"></i> Resumen del recorrido
-                                    </div>
-                                    <div class="card-body">
-                                        <p class="card-text" id="travel-message">
-                                            <span class="" id="root-travel"></span>
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Stats -->
-                            <div class="col-md-2">
-                                <div class="h-100 d-flex flex-column justify-content-start">
-                                    ${getTemperatureStatsHtml(stats_temp)}
-                                </div>
-                            </div>
-
-                            <!-- Mapa -->
-                            <div class="col-md-10">
-                                <div id="map" class="w-100 rounded" style="aspect-ratio: 16 / 9;"></div>
-                            </div>
-
-                        </div>
-
-                    </div>
-                        
-                    `
-
-        Modal({
-            title: 'Grafica de temperaturas',
-            body: html,
-            modal_size: 'modal-fullscreen',
-        });
-        
-        initMap(tramos[0], unit);
-        init_chart_temperature({ caja: unit_name, array_temp, array_days });
+            state.secondsRemaining = Math.max(0, state.secondsRemaining - 1);
+            updateTimerDisplays(modal_id, state.secondsRemaining);
+        }, 1000);
 
     } catch (error) {
         console.log(error);
-        
         Modal({
             title: 'Error al generar la grafica',
             body: `<div class="alert alert-warning text-center my-3">
@@ -611,9 +692,10 @@ const showChartTemperature = async (caja) => {
                             Si el problema persiste, por favor repórtelo al área de soporte técnico.
                         </small>
                     </div>`,
+            footer: true,
         });
     }
-}
+};
 window.showChartTemperature = showChartTemperature;
 
 const getTemperatureStats = (temperatures) => {

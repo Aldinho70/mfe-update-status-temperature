@@ -84,6 +84,20 @@ export const close_modal = (modal_id) => {
 
     if (!modal_id) return;
 
+    if (window.modalRefreshIntervals?.[modal_id]) {
+        const modalState = window.modalRefreshIntervals[modal_id];
+
+        if (modalState.refreshId) {
+            clearInterval(modalState.refreshId);
+        }
+
+        if (modalState.countdownId) {
+            clearInterval(modalState.countdownId);
+        }
+
+        delete window.modalRefreshIntervals[modal_id];
+    }
+
     $(`#${modal_id}`).remove();
     $(`#backdrop-${modal_id}`).remove();
 
