@@ -14,14 +14,14 @@ export function initMap(tramos, data_unit) {
     console.log(tramos);
     const { puntos, salida, entrada } = tramos
     const flag_all_travel = (salida != null && entrada != null) ? true : false;
+    console.log( puntos.length );
+    
 
     const puntosCambioTemp = obtenerPuntosDeCambioTemperatura(puntos);
-    console.log(flag_all_travel);
-    
 
     const map = new google.maps.Map(document.getElementById("map"), {
         zoom: 12,
-        center: { lat: puntos[0].lat, lng: puntos[0].lng },
+        center: { lat: puntos[puntos.length - 1].lat, lng: puntos[puntos.length - 1].lng },
     });
 
     initPolyline(map, puntos);

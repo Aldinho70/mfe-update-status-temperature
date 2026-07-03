@@ -151,118 +151,83 @@ const getTemperatureStatsHtml = (stats) => {
 
     if (!stats) {
         return `
-            <div class="alert alert-warning">
-                No hay datos de temperatura disponibles.
+            <div class="alert alert-info border-0 rounded-4 px-4 py-3 mb-0 shadow-sm">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-info-circle-fill"></i>
+                    <span>No hay datos de temperatura disponibles.</span>
+                </div>
             </div>
         `;
     }
 
     return `
         <div class="row g-3">
-
-            <div class="col-md-12">
-                <div class="card border-success text-bg-success h-100">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted mb-2">Temperatura Actual</h6>
-                        <h3>${stats.lastTemperature} °C</h3>
+            <div class="col-12 col-sm-6">
+                <div class="card border-0 rounded-4 shadow-sm h-100 bg-primary-subtle">
+                    <div class="card-body text-center py-4">
+                        <p class="text-uppercase text-muted small mb-2">Temperatura actual</p>
+                        <h3 class="mb-0 fw-bold">${stats.lastTemperature} °C</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6">
+                <div class="card border-0 rounded-4 shadow-sm h-100 bg-danger-subtle">
+                    <div class="card-body text-center py-4">
+                        <p class="text-uppercase text-muted small mb-2">Temperatura máxima</p>
+                        <h3 class="mb-0 fw-bold">${stats.maxTemperature} °C</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6">
+                <div class="card border-0 rounded-4 shadow-sm h-100 bg-info-subtle">
+                    <div class="card-body text-center py-4">
+                        <p class="text-uppercase text-muted small mb-2">Temperatura mínima</p>
+                        <h3 class="mb-0 fw-bold">${stats.minTemperature} °C</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6">
+                <div class="card border-0 rounded-4 shadow-sm h-100 bg-success-subtle">
+                    <div class="card-body text-center py-4">
+                        <p class="text-uppercase text-muted small mb-2">Promedio</p>
+                        <h3 class="mb-0 fw-bold">${stats.averageTemperature} °C</h3>
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-12">
-                <div class="card border-danger text-bg-danger h-100">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted mb-2">Temperatura Máxima</h6>
-                        <h3>${stats.maxTemperature} °C</h3>
+            <div class="col-12">
+                <div class="card border-0 rounded-4 bg-light h-100 shadow-sm">
+                    <div class="card-body py-3">
+                        <div class="row gx-2 gy-3 text-center">
+                            <div class="col-6 col-md-4">
+                                <p class="text-uppercase text-muted small mb-1">Lecturas</p>
+                                <strong class="fs-6">${stats.count}</strong>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <p class="text-uppercase text-muted small mb-1">Positivas</p>
+                                <strong class="fs-6">${stats.positiveReadings}</strong>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <p class="text-uppercase text-muted small mb-1">Negativas</p>
+                                <strong class="fs-6">${stats.negativeReadings}</strong>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <p class="text-uppercase text-muted small mb-1">Rango</p>
+                                <strong class="fs-6">${stats.temperatureRange} °C</strong>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <p class="text-uppercase text-muted small mb-1">Mediana</p>
+                                <strong class="fs-6">${stats.medianTemperature} °C</strong>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <p class="text-uppercase text-muted small mb-1">Última lectura</p>
+                                <strong class="fs-6">${stats.lastTemperature} °C</strong>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <div class="col-md-12">
-                <div class="card border-primary text-bg-primary h-100">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted mb-2">Temperatura Mínima</h6>
-                        <h3>${stats.minTemperature} °C</h3>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-12">
-                <div class="card border-info text-bg-info h-100">
-                    <div class="card-body text-center">
-                        <h6 class="text-muted mb-2">Promedio</h6>
-                        <h3>${stats.averageTemperature} °C</h3>
-                    </div>
-                </div>
-            </div>
-
         </div>
-
-        <div class="row g-3 mt-1">
-
-            <!--<div class="col-md-4">
-                <div class="card text-bg-secondary h-100">
-                    <div class="card-header">
-                        Distribución
-                    </div>
-                    <div class="card-body">
-                        <p class="mb-2">
-                            <strong>Lecturas:</strong>
-                            ${stats.count}
-                        </p>
-
-                        <p class="mb-2">
-                            <strong>Positivas:</strong>
-                            ${stats.positiveReadings}
-                        </p>
-
-                        <p class="mb-0">
-                            <strong>Negativas:</strong>
-                            ${stats.negativeReadings}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="card text-bg-secondary h-100">
-                    <div class="card-header">
-                        Variabilidad
-                    </div>
-                    <div class="card-body">
-                        <p class="mb-2">
-                            <strong>Rango:</strong>
-                            ${stats.temperatureRange} °C
-                        </p>
-
-                        <p class="mb-0">
-                            <strong>Mediana:</strong>
-                            ${stats.medianTemperature} °C
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="card text-bg-secondary h-100">
-                    <div class="card-header">
-                        Tendencia
-                    </div>
-                    <div class="card-body">
-                        <p class="mb-2">
-                            <strong>Primera lectura:</strong>
-                            ${stats.firstTemperature} °C
-                        </p>
-
-                        <p class="mb-0">
-                            <strong>Última lectura:</strong>
-                            ${stats.lastTemperature} °C
-                        </p>
-                    </div>
-                </div>
-            </div>-->
-
-       </div>
     `;
 }
 
@@ -412,48 +377,65 @@ const updateCaja = (unit_selected) => {
 window.updateCaja = updateCaja;
 
 const buildTemperatureModalBody = ({ stats_temp, travel }) => {
-    return `<div class="container-fluid p-3">
+    return `<div class="container-fluid px-0 px-lg-2 py-2">
 
-            <!-- Gráfica de temperatura: ocupa todo el ancho -->
-            <div class="row mb-4">
+            <div class="row g-3">
                 <div class="col-12">
-                    <div id="root-chart-temperature"></div>
-                </div>
-            </div>
-
-            <!-- Stats + Mapa -->
-            <div class="row g-3 align-items-stretch">
-
-                <div class="col-md-12">
-                    <div class="card text-bg-secondary mb-3 w-100">
-                        <div class="card-header">
-                            <i class="bi bi-map me-1"></i> Resumen del recorrido
-                        </div>
-                        <div class="card-body">
-                            <p class="card-text" id="travel-message">
-                                <span class="" id="root-travel">${travel}</span>
-                            </p>
-
-                            <div class="d-flex gap-3 mt-3">
-                                <small class="text-muted" id="last-update-text">Última actualización: --</small>
-                                <small class="text-muted" id="next-update-text">Próxima actualización en: 60s</small>
+                    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                        <div class="card-body p-4">
+                            <div class="row align-items-center gy-3">
+                                <div class="col-12 col-lg-8">
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis">Recorrido</span>
+                                        <span class="text-muted small">Monitoreo en tiempo real</span>
+                                    </div>
+                                    <h5 class="mb-2 fw-semibold">Resumen del recorrido</h5>
+                                    <p class="text-muted mb-0 lh-lg" id="root-travel">${travel}</p>
+                                </div>
+                                <div class="col-6 col-md-4 col-lg-2">
+                                    <div class="border rounded-3 p-3 text-center bg-body-tertiary h-100">
+                                        <small class="text-uppercase text-muted d-block mb-1">Última actualización</small>
+                                        <strong id="last-update-text" class="d-block">--</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4 col-lg-2">
+                                    <div class="border rounded-3 p-3 text-center bg-body-tertiary h-100">
+                                        <small class="text-uppercase text-muted d-block mb-1">Próxima actualización</small>
+                                        <strong id="next-update-text" class="d-block">60s</strong>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Stats -->
-                <div class="col-md-2">
-                    <div class="h-100 d-flex flex-column justify-content-start">
-                        ${getTemperatureStatsHtml(stats_temp)}
+                <div class="col-12">
+                    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+                        <div class="card-body p-0">
+                            <div id="root-chart-temperature" class="w-100" style="min-height: 320px;"></div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Mapa -->
-                <div class="col-md-10">
-                    <div id="map" class="w-100 rounded" style="aspect-ratio: 16 / 9;"></div>
+                <div class="col-12 col-xl-4">
+                    <div class="card shadow-sm h-100 border-0 rounded-4">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <h6 class="card-title mb-0 fw-semibold">Indicadores de temperatura</h6>
+                                <span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis">Resumen</span>
+                            </div>
+                            ${getTemperatureStatsHtml(stats_temp)}
+                        </div>
+                    </div>
                 </div>
 
+                <div class="col-12 col-xl-8">
+                    <div class="card shadow-sm h-100 border-0 rounded-4 overflow-hidden">
+                        <div class="card-body p-0">
+                            <div id="map" class="w-100 rounded-bottom" style="min-height: 70vh;"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
         </div>`;
