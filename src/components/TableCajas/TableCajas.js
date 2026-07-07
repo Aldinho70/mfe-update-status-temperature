@@ -18,8 +18,8 @@ export const TableCajas = async (_unit_selected) => {
     })
 
     const html_select = Select({ options: array_data });
-    Modal({ title: 'Asignar una caja a tracto', body: html_select, function_button: "update_caja_custom_field()" });
-    initSelect2();
+    const object_modal = Modal({ title: 'Asignar una caja a tracto', body: html_select, function_button: "update_caja_custom_field()" });
+    initSelect2( object_modal );
 }
 
 const update_caja_custom_field = async () => {

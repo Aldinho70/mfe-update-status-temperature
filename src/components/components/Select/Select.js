@@ -1,5 +1,7 @@
 export const Select = (data) => {
 
+    console.log( data );
+    
     return `
         <select class="form-select" id="root-select">
             <option selected>Selecciona una caja</option>
@@ -11,8 +13,8 @@ export const Select = (data) => {
         </select>`
 }
 
-export const initSelect2 = () => {
+export const initSelect2 = ( modalId = 'root-modal-1' ) => {
     $('#root-select').select2({
-        dropdownParent: $('#root-modal')
+        dropdownParent: $(`#${modalId}`)
     });
 }

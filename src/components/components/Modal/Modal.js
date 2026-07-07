@@ -1,36 +1,3 @@
-// export const Modal = ( data ) => {
-
-//     const html_modal = `
-//         <div class="modal bg-dark" tabindex="-1" id="root-modal">
-//             <div class="modal-dialog ${ data?.modal_size || 'modal-lg'} ">
-//                 <div class="modal-content">
-//                     <div class="modal-header">
-//                         <h5 class="modal-title">${ data?.title || 'Sin titulo asignado' }</h5>
-//                         <button type="button" class="btn-close" aria-label="Close" onClick="close_modal()" ></button>
-//                     </div>
-//                     <div class="modal-body">
-//                         ${ data?.body || 'Sin datos para mostrar' }
-//                     </div>
-//                     <div class="modal-footer">
-//                         <button type="button" class="btn btn-secondary" onClick="close_modal()">Cerrar</button>
-//                         ${ (data?.function_button)
-//                             ? `<button type="button" class="btn btn-primary" onClick="${data?.function_button || alert('Sin funcion')}" >Guardar</button>`
-//                             : ``
-//                         }
-//                     </div>
-//                 </div>
-//             </div>
-//         </div>
-//     `
-//     $("body").append( html_modal );
-//     $("#root-modal").show();
-// }
-
-// const close_modal = () => {
-//     $( "#root-modal" ).hide();
-//     $( "#root-modal" ).remove();
-// }
-// window.close_modal = close_modal;
 let modal_counter = 0;
 
 export const Modal = (data) => {
