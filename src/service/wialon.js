@@ -1,6 +1,7 @@
 const WialonService = (() => {
   let session = null;
   let initialized = false;
+  let array_notifications = [];
 
   const HOST = "https://hst-api.wialon.com";
 
@@ -93,6 +94,10 @@ const WialonService = (() => {
 
   function getSession() {
     return session;
+  }
+
+  function getArrayNotifications() {
+    return array_notifications;
   }
 
   async function loadGroupsWithUnits(groups_filter = []) {
@@ -292,13 +297,15 @@ const WialonService = (() => {
 
   function processNotification(event) {
     const data = event.getData(); // get data from event
-    const unit = session.getItem(data.unit);
+    const unit = session.getItem(data.unit) || null; // get unit from session
 
     if (data.tp && data.tp == "unm") {
-      // addNotificationToast(unit, data)
-      // console.log(data);
       if (data.name == 'DEV-VAR-TEMP') {
-        // console.log(data);
+        array_notifications.push({
+          unit_id: data.unit,
+          unit_name: unit.getName(),
+          data: data
+        });
         addNotificationToast(unit, data)
       }
     }
@@ -503,5 +510,6 @@ const WialonService = (() => {
     getLastMessages,
     updateCustomField,
     loadGroupsWithUnits,
+    getArrayNotifications,
   };
 })();

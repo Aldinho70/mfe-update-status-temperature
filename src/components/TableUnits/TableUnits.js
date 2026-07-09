@@ -616,7 +616,7 @@ const showChartTemperature = async (caja) => {
             title: 'Grafica de temperaturas',
             body: instanceHtml,
             modal_size: 'modal-fullscreen',
-            footer: true,
+            footer: false,
         });
 
         await updateTemperatureModalContent(modal_id, caja);

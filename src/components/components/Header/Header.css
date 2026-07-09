@@ -62,7 +62,7 @@
 }
 
 /* Boton */
-.header-premier .btn {
+/* .header-premier .btn {
   background: linear-gradient(135deg, #e8931c, #ffad33);
 
   border: #0d0d0d;
@@ -72,7 +72,7 @@
   transition: 0.25s ease;
 
   font-weight: 600;
-}
+} */
 
 .header-premier .btn:hover {
   transform: translateY(-2px);

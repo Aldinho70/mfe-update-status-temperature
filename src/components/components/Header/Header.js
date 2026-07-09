@@ -1,3 +1,5 @@
+import { showNotifications, updateNotificationsBadge } from "../../Notifications/Notifications.js";
+
 export const Header = (data = {}) => {
 
     return `
@@ -17,19 +19,24 @@ export const Header = (data = {}) => {
                 <div class="text-center">
 
                     <h1 class="h4 mb-0 fw-bold text-white">
-                        ${data?.title || 'Micro frontend para actualizar status de temperatura'}
+                        ${data?.title || 'Operacion temperaturas Guzman'}
                     </h1>
 
                 </div>
 
                 <!-- Button -->
-                <div>
-
-                    <button id="${data?.button_id || 'headerButton'}" class="btn btn-light fw-semibold d-flex align-items-center gap-2 shadow-sm">
+                <div class="d-flex align-items-center gap-2">
+                    <button id="${data?.button_id || 'headerButton'}" class="btn btn-warning fw-semibold d-flex align-items-center gap-2 shadow-sm">
                         <i class="${data?.button_icon || 'bi bi-save'}"></i>
                         ${data?.button_text || 'Guardar cambios'}
                     </button>
 
+                    <button id="root-btn-notificaciones" class="btn btn-info fw-semibold d-flex align-items-center gap-2 shadow-sm" onClick="showNotificationsEvent()">
+                        <i class="bi bi-bell-fill"></i>
+                        <div class="d-flex align-items-center align-items-baseline gap-2">
+                            Notificaciones <span class="badge text-bg-dark cont_notification " >0</span>
+                        </div>
+                    </button>
                 </div>
 
             </div>
@@ -41,9 +48,21 @@ export const Header = (data = {}) => {
 $(() => {
     $("body").append(Header({
         logo: 'http://ws4cjdg.com/JD.INTEGRACIONES.COM/img/logojd.png',
-        title: 'Micro frontend para actualizar status de temperatura',
+        title: 'Operacion temperaturas Guzman',
         button_text: 'Guardar cambios',
         button_id: 'saveChanges',
         button_icon: 'bi bi-cloud-upload'
     }));
+
+    setInterval(() => {
+        const count = WialonService.getArrayNotifications().length;
+        console.log('count', count);
+        updateNotificationsBadge(count);
+    }, 10000);
+
 })
+
+const showNotificationsEvent = () => {
+    showNotifications();
+}
+window.showNotificationsEvent = showNotificationsEvent;

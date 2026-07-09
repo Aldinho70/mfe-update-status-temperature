@@ -1,7 +1,4 @@
 export const Select = (data) => {
-
-    console.log( data );
-    
     return `
         <select class="form-select" id="root-select">
             <option selected>Selecciona una caja</option>

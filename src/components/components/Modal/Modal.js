@@ -8,7 +8,7 @@ export const Modal = (data) => {
 
     const html_modal = `
         <div class="modal" tabindex="-1" id="${modal_id}" style="z-index:${z_base + 10}; display:block; background: transparent;">
-            <div class="modal-dialog ${data?.modal_size || 'modal-lg'}">
+            <div class="modal-dialog ${data?.modal_size || 'modal-lg'} modal-dialog-scrollable ">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">${data?.title || 'Sin titulo asignado'}</h5>
