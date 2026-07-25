@@ -30,13 +30,18 @@ export const Header = (data = {}) => {
                         <i class="${data?.button_icon || 'bi bi-save'}"></i>
                         ${data?.button_text || 'Guardar cambios'}
                     </button>
+                    
+                    <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
+                        <button id="root-btn-notificaciones" class="btn btn-danger fw-semibold d-flex align-items-center gap-2 shadow-sm" onClick="showNotificationsEvent()">
+                            <i class="bi bi-bell-fill"></i>
+                            <div class="d-flex align-items-center align-items-baseline gap-1">
+                                <span class="badge text-bg-dark cont_notification " >0</span>
+                            </div>
+                        </button>
+                        <a type="button" href="http://ws4cjdg.com/mfe-notifications-status-temperature/" Target="_blank" class="btn btn-primary">Panel de notificaciones</a>
 
-                    <button id="root-btn-notificaciones" class="btn btn-info fw-semibold d-flex align-items-center gap-2 shadow-sm" onClick="showNotificationsEvent()">
-                        <i class="bi bi-bell-fill"></i>
-                        <div class="d-flex align-items-center align-items-baseline gap-2">
-                            Notificaciones <span class="badge text-bg-dark cont_notification " >0</span>
-                        </div>
-                    </button>
+                    </div>
+
                 </div>
 
             </div>
