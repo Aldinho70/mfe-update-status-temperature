@@ -90,10 +90,10 @@ const createUnitCard = (unit, status) => {
             class="unit-card d-flex justify-content-between align-items-center p-2 mb-2 border rounded bg-white shadow-sm"
             draggable="true"
             id="card-root-${safeId}"
-            data-unit="${unit.unit}"
-            data-unit_id="${unit.id}"
+            data-unit="${unit?.unit || '' }"
+            data-unit_id="${unit?.id || ''}"
             data-field_id="${field_id}"
-            data-field-id-caja=${caja.id}
+            data-field-id-caja=${caja?.id || ''}
             data-status="${status}"
         >
 
