@@ -1,4 +1,4 @@
-const s = (() => {
+globalThis.WialonService = (() => {
   let session = null;
   let initialized = false;
   let array_notifications = [];
