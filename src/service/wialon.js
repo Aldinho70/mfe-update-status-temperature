@@ -1,4 +1,4 @@
-const WialonService = (() => {
+const s = (() => {
   let session = null;
   let initialized = false;
   let array_notifications = [];
